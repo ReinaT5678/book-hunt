@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <link rel="stylesheet" href="../static/css/style.css">
+        <title>Search Books - Book Hunt</title>
+    </head>
+    <body>
+        <div class="page-wrapper">
+            <div class="search-header">
+                <h1>Find your next favorite book!</h1>
+                <p>Search books from the API by title, author, or year. </p>
+            </div>
+
+            <div class="form-container search-panel"> 
+                <form method="GET" action="/search">
+                    <div class="filter-row">
+                        <div class="filter-group">
+                            <label for="query">Keyword</label>
+                            <input id="query" name="query" type="search" placeholder="Any keyword" value="{{ query }}">
+                        </div>
+
+                        <div class="filter-group">
+                            <label for="author">Author</label>
+                            <input id="author" name="author" type="text" placeholder="Author Name" value="{{ author }}">
+                        </div>
+
+                        <div class="filter-group">
+                            <label for="genre">Genre</label>
+                            <select id="genre" name="genre" class="search-select"> 
+                                <option value="">Any Genre</option>
+                                {% for g in genres %}
+                                <option value="{{ g }}" {% if genre == g %}selected{% endif %}>{{ g }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+
+                        <div class="filter-group filter-actions">
+                            <button type="submit">Search</button>
+                            <a href="/search" class="secondary-button">Clear</a>
+                        </div>
+
+                    </div>
+                </form>
+            </div>
+
+            <div class="results-header">
+                <p>{{ num_found }} results found</p>
+                {% if num_found > 0 %}
+                <p>Page {{ page }} of {{ total_pages }}</p>
+                {% endif %}
+            </div>
+
+            {% if books %}
+            <div class="book-grid">
+                {% for book in books %}
+                <article class="book-card">
+                    <div class="book-cover">
+                        {% if book.cover_url %}
+                        <img src="{{ book.cover_url }}" alt="{{ book.title }} cover">
+                        {% else %}
+                        <div class="cover-placeholder">No cover image available for {{ book.title }}</div>
+                        {% endif %}
+                    </div>
+                    <div class="book-info">
+                        <h2 class="book-title"> {{ book.title }}</h2>
+                        <p class="book-author">{{ book.author or 'Unknown author' }}</p>
+                        <p class="book-year">{{ book.first_publish_year or 'Unknown publish year' }}</p>
+                    </div>
+                </article>
+                {% endfor %}
+            </div>
+
+            <div class="pagination">
+                {% if page > 1 %}
+                <a class="pagination-button" href="?query={{ query | urlencode }}&author={{ author | urlencode }}&genre={{ genre | urlencode }}&page={{ page - 1 }}">Previous</a>
+                {% else %}
+                <span class="pagination-button disabled">Previous</span>
+                {% endif %}
+
+                <span class="pagination-info">Page {{ page }} of {{ total_pages }}</span>
+
+                {% if page < total_pages %}
+                <a class="pagination-button" href="?query={{ query | urlencode }}&author={{ author | urlencode }}&genre={{ genre | urlencode }}&page={{ page + 1 }}">Next</a>
+                {% else %}
+                <span class="pagination-button disabled">Next</span>
+                {% endif %}
+            </div>
+            {% else %}
+            <div class="empty-state">
+                <p>No books to show yet. Type a search term above to load results from the API.</p>
+            </div>
+            {% endif %}
+        </div>
+    </body>
+</html>
