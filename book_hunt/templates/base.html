@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta charset="UTF-8">
+        <title>Book Hunt</title>
+        <link rel="stylesheet" href="../static/css/style.css">
+    </head>
+
+    <body>
+        <nav class="navbar">
+            <div class="nav-left">
+                <a href="/search" class="nav-logo">Book Hunt</a>
+            </div>
+
+            <div class="nav-right">
+                <a href="/search" class="nav-link"> Search </a>
+                <a href="/track" class="nav-link">Track</a>
+                <a href="/profile" class="nav-link">Profile</a>
+            </div>
+        </nav>
+
+        <div class="content">
+            {% block content %}{% endblock %}
+        </div>
+    </body>
+</html>

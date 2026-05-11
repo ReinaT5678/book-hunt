@@ -193,6 +193,27 @@ def book_detail(book_id):
 def track():
     return "Track your books!"
 
+@app.route("/profile")
+def profile():
+    if "user_id" not in session:
+        return redirect("/login")
+
+    db = get_db()
+    user = db.execute(
+        "SELECT * FROM users WHERE id = ?",
+        (session["user_id"],)
+    ).fetchone()
+
+    if user is None:
+        return redirect("/login")
+
+    return render_template("profile.html", email=user["email"])
+
+@app.route("/logout")
+def logout():
+    session.pop("user_id", None)
+    return redirect("/login")
+
 if __name__ == "__main__":
     # Initialize database if it doesn't exist
     if not os.path.exists(DATABASE):

@@ -6,6 +6,8 @@
         <link rel="stylesheet" href="../static/css/style.css">
         <title>Search Books - Book Hunt</title>
     </head>
+    {% extends "base.html" %}
+    {% block content %}
     <body>
         <div class="page-wrapper">
             <div class="search-header">
@@ -97,4 +99,5 @@
             {% endif %}
         </div>
     </body>
+    {% endblock %}
 </html>
