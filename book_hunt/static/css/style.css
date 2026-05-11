@@ -373,3 +373,9 @@ button:active {
     font-size: 15px;
     transition: border-color 0.3s, box-shadow 0.3s;
 }
+
+.book-card-link {
+    text-decoration: none;
+    color: inherit;
+    display: block;
+}

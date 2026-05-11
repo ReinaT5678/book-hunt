@@ -55,20 +55,23 @@
             {% if books %}
             <div class="book-grid">
                 {% for book in books %}
-                <article class="book-card">
-                    <div class="book-cover">
-                        {% if book.cover_url %}
-                        <img src="{{ book.cover_url }}" alt="{{ book.title }} cover">
-                        {% else %}
-                        <div class="cover-placeholder">No cover image available for {{ book.title }}</div>
-                        {% endif %}
-                    </div>
-                    <div class="book-info">
-                        <h2 class="book-title"> {{ book.title }}</h2>
-                        <p class="book-author">{{ book.author or 'Unknown author' }}</p>
-                        <p class="book-year">{{ book.first_publish_year or 'Unknown publish year' }}</p>
-                    </div>
-                </article>
+                <a href="/book/{{ book.id }}" class="book-card-link">
+                    <article class="book-card">
+                        <div class="book-cover">
+                            {% if book.cover_url %}
+                            <img src="{{ book.cover_url }}" alt="{{ book.title }} cover">
+                            {% else %}
+                            <div class="cover-placeholder">No cover image available for {{ book.title }}</div>
+                            {% endif %}
+                        </div>
+                        <div class="book-info">
+                            <h2 class="book-title"> {{ book.title }}</h2>
+                            <p class="book-author">{{ book.author or 'Unknown author' }}</p>
+                            <p class="book-year">{{ book.first_publish_year or 'Unknown publish year' }}</p>
+                        </div>
+                    </article>
+                </a>
+                
                 {% endfor %}
             </div>
 

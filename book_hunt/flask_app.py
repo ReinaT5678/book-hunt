@@ -154,6 +154,40 @@ def search():
         genres=get_genres()
     )
 
+@app.route("/book/<book_id>")
+def book_detail(book_id):
+    # Fetch work details 
+    url = f"https://openlibrary.org/works/{book_id}.json"
+    response = requests.get(url)
+
+    if response.status_code != 200:
+        return render_template("error.html", message="Book not found.")
+
+    data = response.json()
+
+    # cover image 
+    cover_id = None 
+    if "covers" in data and len(data["covers"]) > 0:
+        cover_id = data["covers"][0]
+
+    cover_url = (
+        f"https://covers.openlibrary.org/b/id/{cover_id}-L.jpg"
+        if cover_id
+        else None
+    )
+
+    desc = data.get("description")
+    if isinstance(desc, dict):
+        desc = desc.get("value")
+
+    book = {
+        "title": data.get("title"),
+        "description": desc or "No description available.",
+        "subjects": data.get("subjects", []),
+        "cover_url": cover_url
+    }
+
+    return render_template("book-detail.html", book=book)
 
 @app.route("/track")
 def track():
