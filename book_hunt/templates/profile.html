@@ -1,15 +1,30 @@
 {% extends "base.html" %}
+
+{% block head %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/profile.css') }}">
+{% endblock %}
+
 {% block content %}
-    <body>
-        {% if email %}
-        <div class="show-user">
-            <h1>Welcome, {{ email }}</h1>
-            <p>Your email is: {{ email }}</p>
+
+<div class="profile-wrapper">
+
+    {% if email %}
+    <div class="profile-card">
+        <h1 class="profile-title">Your Profile</h1>
+
+        <div class="profile-info">
+            <p><strong>Email:</strong> {{ email }}</p>
         </div>
-        {% else %}
-        <div class="show-user">
-            <h1>Please log in to see your profile.</h1>
-        </div>
-        {% endif %}
-    </body> 
+
+        <a href="/logout" class="logout-button">Logout</a>
+    </div>
+
+    {% else %}
+    <div class="profile-card">
+        <h1 class="profile-title">Please log in to see your profile.</h1>
+    </div>
+    {% endif %}
+
+</div>
+
 {% endblock %}
