@@ -43,6 +43,19 @@ def get_genres():
         pass
     return DEFAULT_GENRES
 
+@app.context_processor
+def inject_logged_in_user():
+    current_user_email = None
+    if "user_id" in session:
+        db = get_db()
+        user_row = db.execute(
+            "SELECT email FROM users WHERE id = ?",
+            (session["user_id"],)
+        ).fetchone()
+        if user_row:
+            current_user_email = user_row["email"]
+    return {"current_user_email": current_user_email}
+
 @app.teardown_appcontext
 def close_db(error):
     db = g.pop("db", None)
@@ -135,7 +148,11 @@ def search():
                     if cover_id
                     else None
                 )
+                work_key = doc.get("key", "")
+                book_id = work_key.split("/")[-1] if work_key else None
+
                 books.append({
+                    "id": book_id,
                     "title": doc.get("title"),
                     "author": ", ".join(doc.get("author_name", [])) if doc.get("author_name") else None,
                     "first_publish_year": doc.get("first_publish_year"),
@@ -180,18 +197,117 @@ def book_detail(book_id):
     if isinstance(desc, dict):
         desc = desc.get("value")
 
+    # Fetch authors
+    authors = data.get("authors", [])
+    author_names = []
+    for auth in authors:
+        if "author" in auth and "key" in auth["author"]:
+            author_key = auth["author"]["key"].split("/")[-1]
+            auth_url = f"https://openlibrary.org/authors/{author_key}.json"
+            auth_resp = requests.get(auth_url)
+            if auth_resp.status_code == 200:
+                auth_data = auth_resp.json()
+                author_names.append(auth_data.get("name", "Unknown"))
+    author = ", ".join(author_names) if author_names else "Unknown"
+
     book = {
+        "id": book_id,
         "title": data.get("title"),
+        "author": author,
         "description": desc or "No description available.",
         "subjects": data.get("subjects", []),
-        "cover_url": cover_url
+        "cover_url": cover_url,
+        "cover_id": cover_id,
+        "first_publish_year": data.get("first_publish_date")
     }
 
-    return render_template("book-detail.html", book=book)
+    # Check current status for logged-in user
+    current_status = None
+    if "user_id" in session:
+        db = get_db()
+        status_row = db.execute(
+            "SELECT status FROM reading_list WHERE user_id = ? AND book_id = ?",
+            (session["user_id"], book_id)
+        ).fetchone()
+        if status_row:
+            current_status = status_row["status"]
+
+    return render_template("book-detail.html", book=book, current_status=current_status)
 
 @app.route("/track")
 def track():
-    return "Track your books!"
+    if "user_id" not in session:
+        return redirect("/login")
+    
+    db = get_db()
+
+    want_to_read = db.execute(
+        "SELECT * FROM reading_list JOIN books ON reading_list.book_id = books.id "
+        "WHERE user_id = ? AND status = 'want_to_read'",
+        (session["user_id"],)
+    ).fetchall() 
+
+    reading = db.execute(
+        "SELECT * FROM reading_list JOIN books ON reading_list.book_id = books.id "
+        "WHERE user_id = ? AND status = 'reading'",
+        (session["user_id"],)
+    ).fetchall()
+
+    finished = db.execute(
+        "SELECT * FROM reading_list JOIN books ON reading_list.book_id = books.id "
+        "WHERE user_id = ? AND status = 'finished'",
+        (session["user_id"],)
+    ).fetchall()
+
+    return render_template("book-track.html", want_to_read=want_to_read, reading=reading, finished=finished)
+
+@app.route("/track/<book_id>", methods=["POST"])
+def update_track(book_id):
+    if "user_id" not in session:
+        return redirect("/login")
+
+    db = get_db()
+    status = request.form.get("status")
+
+    # Ensure the book exists in the books table 
+    existing = db.execute("SELECT * FROM books WHERE id = ?", (book_id,)).fetchone()
+
+    if existing is None:
+        db.execute(
+            "INSERT INTO books (id, title, author, cover_id, first_publish_year) VALUES (?, ?, ?, ?, ?)",
+            (
+                book_id,
+                request.form.get("title"),
+                request.form.get("author"),
+                request.form.get("cover_id"),
+                request.form.get("year")
+            )
+        )
+        db.commit()
+
+    # Check if user already has the book in their list 
+    existing_entry = db.execute(
+        "SELECT * FROM reading_list WHERE user_id = ? AND book_id = ?",
+        (session["user_id"], book_id)
+    ).fetchone()
+
+    if existing_entry:
+        # Update status
+        db.execute(
+            "UPDATE reading_list SET status = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?",
+            (status, existing_entry["id"])
+        )
+    else:
+        # Insert new entry
+        db.execute(
+            "INSERT INTO reading_list (user_id, book_id, status) VALUES (?, ?, ?)",
+            (session["user_id"], book_id, status)
+        )
+
+    db.commit()
+
+    return redirect(f"/book/{book_id}")
+
 
 @app.route("/profile")
 def profile():

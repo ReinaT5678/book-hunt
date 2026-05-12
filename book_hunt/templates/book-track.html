@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html>
+        <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <link rel="stylesheet" href="../static/css/style.css">
+        <title>Track Books</title>
+    </head>
+    {% extends "base.html" %}
+    {% block content %}
+    <body>
+        <h1 class="track-title">Book Tracker</h1>
+        <div class="track-grid">
+            <div class="track-column">
+                <h2>Want to Read</h2>
+                {% if want_to_read %}
+                    {% for book in want_to_read %}
+                    <div class="track-card">
+                        <p class="track-title">{{book.title}}</p>
+                        <p class="track-author">{{book.author}}</p>
+                    </div>
+                    {% endfor %}
+                {% else %}
+                    <p class="empty-col">No books here yet!</p>
+                {% endif %}
+            </div>
+
+            <div class="track-column">
+                <h2>Currently Reading</h2>
+                {% if reading %}
+                    {% for book in reading %}
+                    <div class="track-card">
+                        <p class="track-title">{{book.title}}</p>
+                        <p class="track-author">{{book.author}}</p>
+                    </div>
+                    {% endfor %}
+                {% else %}
+                    <p class="empty-col">No books here yet!</p>
+                {% endif %}
+            </div>
+
+            <div class="track-column">
+                <h2>Finished Reading</h2>
+                {% if finished %}
+                    {% for book in finished %}
+                    <div class="track-card">
+                        <p class="track-title">{{book.title}}</p>
+                        <p class="track-author">{{book.author}}</p>
+                    </div>
+                    {% endfor %}
+                {% else %}
+                    <p class="empty-col">No books here yet!</p>
+                {% endif %}
+            </div>
+
+        </div>
+    </body> 
+    {% endblock %}
+</html>

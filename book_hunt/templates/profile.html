@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html>
+        <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <link rel="stylesheet" href="../static/css/style.css">
+        <title>Track Books</title>
+    </head>
+    {% extends "base.html" %}
+    {% block content %}
+    <body>
+        {% if email %}
+        <div class="show-user">
+            <h1>Welcome, {{ email }}</h1>
+            <p>Your email is: {{ email }}</p>
+        </div>
+        {% else %}
+        <div class="show-user">
+            <h1>Please log in to see your profile.</h1>
+        </div>
+        {% endif %}
+    </body> 
+    {% endblock %}
+</html>
