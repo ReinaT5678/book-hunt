@@ -1,13 +1,10 @@
-<!DOCTYPE html>
-<html>
-        <head>
-        <meta charset="UTF-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <link rel="stylesheet" href="../static/css/style.css">
-        <title>Track Books</title>
-    </head>
-    {% extends "base.html" %}
-    {% block content %}
+{% extends "base.html" %}
+
+{% block head %}
+<link rel="stylesheet" href="../static/css/book.css">
+{% endblock %}
+
+{% block content %}
     <body>
         <h1 class="track-title">Book Tracker</h1>
         <div class="track-grid">
@@ -55,5 +52,4 @@
 
         </div>
     </body> 
-    {% endblock %}
-</html>
+{% endblock %}

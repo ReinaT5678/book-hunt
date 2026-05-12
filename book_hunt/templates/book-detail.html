@@ -1,58 +1,53 @@
-<!DOCTYPE html>
-<html>
-    <head>
-        <meta charset="UTF-8">
-        <title>{{ book.title }} - Book Details</title>
-        <link rel="stylesheet" href="../static/css/style.css">
-    </head>
-    {% extends "base.html" %}
-    {% block content %}
-    <body>
-        <div class="page-wrapper">
-            <a href="/search" class="back-button">Back to results</a>
+{% extends "base.html" %}
 
-            <div class="book-detail-container">
-                <div class="book-detail-cover">
-                    {% if book.cover_url %}
-                    <img src="{{ book.cover_url }}" alt = "{{ book.title }} cover">
-                    {% endif %}
-                </div>
+{% block head %}
+<link rel="stylesheet" href="../static/css/book.css">
+{% endblock %}
 
-                <div class="book-detail-info">
-                    <h1>{{ book.title }}</h1>
-                    
-                    {% if current_status %}
-                    <p>This book is currently in your {{ current_status.replace('_', ' ') }} list.</p>
-                    {% endif %}
-                    
-                    <form method="POST" action="/track/{{ book.id }}" class="track-actions">
-                        <button name="status" value="want_to_read" class="track-btn want" {% if current_status == 'want_to_read' %}disabled{% endif %}>
-                            Want to Read
-                        </button>
-                        <button name="status" value="currently_reading" class="track-btn current" {% if current_status == 'currently_reading' %}disabled{% endif %}>
-                            Currently Reading
-                        </button>
-                        <button name="status" value="finished_reading" class="track-btn finished" {% if current_status == 'finished_reading' %}disabled{% endif %}>
-                            Finished
-                        </button>
-                        <input type="hidden" name="title" value="{{ book.title }}">
-                        <input type="hidden" name="author" value="{{ book.author }}">
-                        <input type="hidden" name="cover_id" value="{{ book.cover_id }}">
-                        <input type="hidden" name="year" value="{{ book.first_publish_year }}">
-                    </form>
+{% block content %}
+    <div class="page-wrapper">
+        <a href="/search" class="back-button">Back to results</a>
 
-                    <h3>Description</h3>
-                    <p>{{ book.description }}</p>
+        <div class="book-detail-container">
+            <div class="book-detail-cover">
+                {% if book.cover_url %}
+                <img src="{{ book.cover_url }}" alt="{{ book.title }} cover">
+                {% endif %}
+            </div>
 
-                    {% if book.subjects %}
-                    <h3>Subjects</h3>
-                    {% for subject in book.subjects %}
-                    <p>{{subject}}</p>
-                    {% endfor %}
-                    {% endif %}
-                </div>
+            <div class="book-detail-info">
+                <h1>{{ book.title }}</h1>
+                
+                {% if current_status %}
+                <p>This book is currently in your {{ current_status.replace('_', ' ') }} list.</p>
+                {% endif %}
+                
+                <form method="POST" action="/track/{{ book.id }}" class="track-actions">
+                    <button name="status" value="want_to_read" class="track-btn want" {% if current_status == 'want_to_read' %}disabled{% endif %}>
+                        Want to Read
+                    </button>
+                    <button name="status" value="currently_reading" class="track-btn current" {% if current_status == 'currently_reading' %}disabled{% endif %}>
+                        Currently Reading
+                    </button>
+                    <button name="status" value="finished_reading" class="track-btn finished" {% if current_status == 'finished_reading' %}disabled{% endif %}>
+                        Finished
+                    </button>
+                    <input type="hidden" name="title" value="{{ book.title }}">
+                    <input type="hidden" name="author" value="{{ book.author }}">
+                    <input type="hidden" name="cover_id" value="{{ book.cover_id }}">
+                    <input type="hidden" name="year" value="{{ book.first_publish_year }}">
+                </form>
+
+                <h3>Description</h3>
+                <p>{{ book.description }}</p>
+
+                {% if book.subjects %}
+                <h3>Subjects</h3>
+                {% for subject in book.subjects %}
+                <p>{{ subject }}</p>
+                {% endfor %}
+                {% endif %}
             </div>
         </div>
-    </body>
-    {% endblock %}
-</html>
+    </div>
+{% endblock %}

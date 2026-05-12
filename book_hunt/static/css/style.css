@@ -95,13 +95,6 @@ button:active {
     transform: scale(0.98);
 }
 
-.page-wrapper {
-    width: 100%;
-    max-width: 1120px;
-    margin: 0 auto;
-    padding: 40px 20px 60px;
-}
-
 
 .search-header {
     text-align: center;
@@ -420,50 +413,6 @@ button:active {
 
 .content {
     padding-top: 20px;
-}
-
-.track-title {
-    text-align: center;
-    color: #4A7A5F;
-    margin-bottom: 30px;
-}
-
-.track-grid {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 28px;
-    margin-top: 20px;
-}
-
-.track-column {
-    background: white;
-    padding: 20px;
-    border-radius: 14px;
-    box-shadow: 0 4px 14px rgba(0,0,0,0.08);
-}
-
-.track-column h2 {
-    text-align: center;
-    color: #4A7A5F;
-    margin-bottom: 16px;
-}
-
-.track-card {
-    background: #F7FAF7;
-    padding: 14px;
-    border-radius: 10px;
-    margin-bottom: 12px;
-    box-shadow: 0 2px 6px rgba(0,0,0,0.05);
-}
-
-.track-title {
-    font-weight: 600;
-    color: #27382B;
-}
-
-.track-author {
-    font-size: 14px;
-    color: #647164;
 }
 
 .empty-col {
