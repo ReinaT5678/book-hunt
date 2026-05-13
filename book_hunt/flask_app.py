@@ -178,7 +178,7 @@ def book_detail(book_id):
     response = requests.get(url)
 
     if response.status_code != 200:
-        return render_template("error.html", message="Book not found.")
+        return "Book not found."
 
     data = response.json()
 

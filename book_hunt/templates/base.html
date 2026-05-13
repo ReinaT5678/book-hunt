@@ -29,5 +29,33 @@
         <div class="content">
             {% block content %}{% endblock %}
         </div>
+
+        <div id="loading-overlay">
+            <div class="spinner"></div>
+        </div>
+
+
+        <script>
+            document.addEventListener("DOMContentLoaded", () => {
+
+                const overlay = document.getElementById("loading-overlay");
+
+                // Show loader on any form submit
+                document.querySelectorAll("form").forEach(form => {
+                    form.addEventListener("submit", () => {
+                        overlay.style.display = "flex";
+                    });
+                });
+
+                // Show loader when clicking book cards 
+                document.querySelectorAll("a.book-card-link").forEach(link => {
+                    link.addEventListener("click", () => {
+                        overlay.style.display = "flex";
+                    });
+                });
+
+            });
+            </script>
+
     </body>
 </html>

@@ -6,12 +6,18 @@
 }
 
 .back-button {
-    display: inline-block;
-    margin-bottom: 20px;
-    background-color: #99C89A;
+    padding: 12px 20px;
+    border-radius: 8px;
+    margin-top: 20px;
+    margin-bottom: 0;
+    border: none;
     color: white;
-    font-size: 14px;
-    text-decoration: none;
+    cursor: pointer;
+    background-color: #AFD5AA;
+    width: 100%;
+    font-size: 16px;
+    font-weight: 600;
+    transition: background-color 0.3s, transform 0.2s, box-shadow 0.3s;
 }
 
 .track-title {
