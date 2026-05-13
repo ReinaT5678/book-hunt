@@ -267,7 +267,6 @@ def update_track(book_id):
         return redirect("/login")
 
     db = get_db()
-
     if request.is_json:
         status = request.json.get("status")
     else:
@@ -277,21 +276,12 @@ def update_track(book_id):
     existing = db.execute("SELECT * FROM books WHERE id = ?", (book_id,)).fetchone()
 
     if existing is None:
-        if request.is_json:
-            # For AJAX, we can't get book details from form, so assume it's already there or skip
-            pass  # Maybe return error
-        else:
-            db.execute(
-                "INSERT INTO books (id, title, author, cover_id, first_publish_year) VALUES (?, ?, ?, ?, ?)",
-                (
-                    book_id,
-                    request.form.get("title"),
-                    request.form.get("author"),
-                    request.form.get("cover_id"),
-                    request.form.get("year")
-                )
-            )
-            db.commit()
+        db.execute(
+            "INSERT OR IGNORE INTO books (id, title) VALUES (?, ?)",
+            (book_id, "Unknown Title")
+        )
+    db.commit()
+
 
     # Check if user already has the book in their list 
     existing_entry = db.execute(
