@@ -7,12 +7,17 @@
 {% block content %}
     <body>
         <h1 class="track-title">Book Tracker</h1>
+        <h3 class="track-title">Click and drag to move books over!</h3>
         <div class="track-grid">
-            <div class="track-column">
+            <div class="track-column" data-status="want_to_read">
                 <h2>Want to Read</h2>
                 {% if want_to_read %}
                     {% for book in want_to_read %}
-                    <div class="track-card">
+                    <div 
+                        class="track-card"
+                        draggable="true"
+                        data-book-id="{{ book.id }}"
+                    >
                         <p class="track-title">{{book.title}}</p>
                         <p class="track-author">{{book.author}}</p>
                     </div>
@@ -22,11 +27,15 @@
                 {% endif %}
             </div>
 
-            <div class="track-column">
+            <div class="track-column" data-status="reading">
                 <h2>Currently Reading</h2>
                 {% if reading %}
                     {% for book in reading %}
-                    <div class="track-card">
+                    <div 
+                        class="track-card"
+                        draggable="true"
+                        data-book-id="{{ book.id }}"
+                    >
                         <p class="track-title">{{book.title}}</p>
                         <p class="track-author">{{book.author}}</p>
                     </div>
@@ -36,11 +45,15 @@
                 {% endif %}
             </div>
 
-            <div class="track-column">
+            <div class="track-column" data-status ="finished">
                 <h2>Finished Reading</h2>
                 {% if finished %}
                     {% for book in finished %}
-                    <div class="track-card">
+                    <div 
+                        class="track-card"
+                        draggable="true"
+                        data-book-id="{{ book.id }}"
+                    >
                         <p class="track-title">{{book.title}}</p>
                         <p class="track-author">{{book.author}}</p>
                     </div>
@@ -52,4 +65,53 @@
 
         </div>
     </body> 
+
+    <script>
+        document.addEventListener("DOMContentLoaded", () => {
+            let draggedCard = null;
+            // make cards draggable 
+            document.querySelectorAll(".track-card").forEach(card => {
+                card.addEventListener("dragstart", e => {
+                    draggedCard=card;
+                    e.dataTransfer.effectAllowed="move";
+                });
+            });
+
+            // Allow dropping on columns 
+            document.querySelectorAll(".track-column").forEach(column => {
+                column.addEventListener("dragover", e=> {
+                    e.preventDefault();
+                    column.classList.add("drag-over");
+                });
+
+                column.addEventListener("dragleave", () => {
+                    column.classList.remove("drag-over");
+                });
+
+                column.addEventListener("drop", e=> {
+                    e.preventDefault();
+                    column.classList.remove("drag-over");
+
+                    if (!draggedCard) return;
+
+                    const newStatus = column.dataset.status;
+                    const bookid = draggedCard.dataset.bookId;
+
+                    fetch(`/track/${bookid}`, {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({ status: newStatus })
+                    }).then(response => {
+                        if (response.ok) {
+                            column.appendChild(draggedCard);
+                        } else {
+                            console.log('Failed to save book status');
+                        }
+                    }).catch(error => {
+                        console.log('Error:', error);
+                    });
+                });
+            });
+        });
+    </script>
 {% endblock %}

@@ -64,7 +64,7 @@ def close_db(error):
 
 @app.route("/")
 def home():
-    return "Hey there this is Book hunt!!"
+    return redirect("/login")
 
 @app.route("/login", methods=["GET", "POST"])
 def login():
@@ -267,23 +267,31 @@ def update_track(book_id):
         return redirect("/login")
 
     db = get_db()
-    status = request.form.get("status")
+
+    if request.is_json:
+        status = request.json.get("status")
+    else:
+        status = request.form.get("status")
 
     # Ensure the book exists in the books table 
     existing = db.execute("SELECT * FROM books WHERE id = ?", (book_id,)).fetchone()
 
     if existing is None:
-        db.execute(
-            "INSERT INTO books (id, title, author, cover_id, first_publish_year) VALUES (?, ?, ?, ?, ?)",
-            (
-                book_id,
-                request.form.get("title"),
-                request.form.get("author"),
-                request.form.get("cover_id"),
-                request.form.get("year")
+        if request.is_json:
+            # For AJAX, we can't get book details from form, so assume it's already there or skip
+            pass  # Maybe return error
+        else:
+            db.execute(
+                "INSERT INTO books (id, title, author, cover_id, first_publish_year) VALUES (?, ?, ?, ?, ?)",
+                (
+                    book_id,
+                    request.form.get("title"),
+                    request.form.get("author"),
+                    request.form.get("cover_id"),
+                    request.form.get("year")
+                )
             )
-        )
-        db.commit()
+            db.commit()
 
     # Check if user already has the book in their list 
     existing_entry = db.execute(
@@ -306,7 +314,10 @@ def update_track(book_id):
 
     db.commit()
 
-    return redirect(f"/book/{book_id}")
+    if request.is_json:
+        return {"success": True}
+    else:
+        return redirect(f"/book/{book_id}")
 
 
 @app.route("/profile")

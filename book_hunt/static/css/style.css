@@ -28,6 +28,9 @@ h1 {
     transition: transform 0.3s, box-shadow 0.3s;
     border-radius: 15px;
     text-align: center;
+    max-width: fit-content;
+    margin-left: auto;
+    margin-right:auto;
 }
 
 .form-container:hover {
@@ -52,8 +55,8 @@ h1 {
 input {
     display: block;
     width: 100%;
-    margin-bottom: 12px;
-    padding: 12px 15px;
+    margin-bottom: 8px;
+    padding: 10px 15px;
     box-sizing: border-box;
     border: 2px solid #E0E0E0;
     border-radius: 8px;
@@ -69,6 +72,18 @@ input:focus {
 
 input::placeholder {
     color: #999;
+}
+
+select {
+    display: block;
+    width: 100%;
+    margin-bottom: 12px;
+    padding: 12px 15px;
+    box-sizing: border-box;
+    border: 2px solid #E0E0E0;
+    border-radius: 8px;
+    font-size: 14px;
+    transition: border-color 0.3s, box-shadow 0.3s;
 }
 
 button {
@@ -90,6 +105,7 @@ button:hover {
     background-color: #99C89A;
     transform: scale(1.02);
 }
+
 
 button:active {
     transform: scale(0.98);
@@ -169,49 +185,31 @@ button:active {
     font-weight: 600;
 }
 
-.search-input,
-.search-select {
-    width: 100%;
-    display: block;
-    padding: 14px 16px;
-    border-radius: 10px;
-    border: 2px solid #E0E0E0;
-    background: #FFF;
-    font-size: 15px;
-    transition: border-color 0.3s, box-shadow 0.3s;
-}
-
-.search-input:focus,
-.search-select:focus {
-    outline: none;
-    border-color: #AFD5AA;
-    box-shadow: 0 0 0 3px rgba(175, 213, 170, 0.12);
-}
-
 .filter-actions {
     display: flex;
-    flex-direction: column;
     gap: 12px;
 }
 
 .secondary-button {
-    display: inline-flex;
-    justify-content: center;
-    align-items: center;
     padding: 12px 20px;
     border-radius: 8px;
-    background: white;
-    color: #5A8C6B;
+    margin-top: 20px;
+    margin-bottom: 0;
     border: 2px solid #AFD5AA;
-    text-decoration: none;
+    color: #AFD5AA;
+    cursor: pointer;
+    background-color: white;
+    width: 100%;
+    font-size: 16px;
     font-weight: 600;
-    transition: background-color 0.3s, color 0.3s, transform 0.2s;
+    transition: background-color 0.3s, transform 0.2s, box-shadow 0.3s;
+    text-decoration: none;
+
 }
 
 .secondary-button:hover {
-    background-color: #F5FBF4;
-    color: #4B7959;
-    transform: translateY(-1px);
+    background-color: #eaeaea;
+    transform: scale(1.02);
 }
 
 .results-header {
@@ -333,27 +331,6 @@ button:active {
     .filter-row {
         grid-template-columns: 1fr;
     }
-}
-
-.search-select {
-    width: 100%;
-    display: block;
-    padding: 14px 16px;
-    border-radius: 10px;
-    border: 2px solid #E0E0E0;
-    background: #fff url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 10 6'%3E%3Cpath fill='%23999' d='M0 0l5 6 5-6z'/%3E%3C/svg%3E") no-repeat right 16px center;
-    background-size: 10px 6px;
-    font-size: 15px;
-    appearance: none;
-    -webkit-appearance: none;
-    transition: border-color 0.3s, box-shadow 0.3s;
-    cursor: pointer;
-}
-
-.search-select:focus {
-    outline: none;
-    border-color: #AFD5AA;
-    box-shadow: 0 0 0 3px rgba(175, 213, 170, 0.12);
 }
 
 .search-input {
