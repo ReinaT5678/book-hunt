@@ -1,6 +1,7 @@
 {% extends "base.html" %}
 
 {% block head %}
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" integrity="..." crossorigin="anonymous">
 <link rel="stylesheet" href="../static/css/book.css">
 {% endblock %}
 
@@ -21,6 +22,8 @@
                     >
                         <p class="track-title">{{book.title}}</p>
                         <p class="track-author">{{book.author}}</p>
+                        <i class="fa-solid fa-trash"></i>
+
                     </div>
                     {% endfor %}
                 {% else %}
@@ -40,6 +43,8 @@
                     >
                         <p class="track-title">{{book.title}}</p>
                         <p class="track-author">{{book.author}}</p>
+                        <i class="fa-solid fa-trash"></i>
+
                     </div>
                     {% endfor %}
                 {% else %}
@@ -58,6 +63,8 @@
                     >
                         <p class="track-title">{{book.title}}</p>
                         <p class="track-author">{{book.author}}</p>
+                        <i class="fa-solid fa-trash"></i>
+
                     </div>
                     {% endfor %}
                 {% else %}
