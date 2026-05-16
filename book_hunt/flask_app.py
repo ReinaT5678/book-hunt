@@ -3,11 +3,13 @@ import requests
 import sqlite3
 from werkzeug.security import generate_password_hash, check_password_hash
 import os
- 
+from dotenv import load_dotenv 
+
+load_dotenv()
 DATABASE = "instance/app.db"
 
 app = Flask(__name__)
-app.secret_key = "your-secret-key-change-this"
+app.secret_key = os.environ.get("FLASK_SECRET_KEY")
 
 def get_db():
     db = g.get("db")
