@@ -268,20 +268,46 @@ def update_track(book_id):
 
     db = get_db()
     if request.is_json:
-        status = request.json.get("status")
+        payload = request.json
+        status = payload.get("status")
+        title = payload.get("title")
+        author = payload.get("author")
+        cover_id = payload.get("cover_id")
+        year = payload.get("year")
     else:
         status = request.form.get("status")
+        title = request.form.get("title")
+        author = request.form.get("author")
+        cover_id = request.form.get("cover_id")
+        year = request.form.get("year")
 
-    # Ensure the book exists in the books table 
+    try:
+        cover_id = int(cover_id) if cover_id else None
+    except (TypeError, ValueError):
+        cover_id = None
+
+    try:
+        year = int(year) if year else None
+    except (TypeError, ValueError):
+        year = None
+
     existing = db.execute("SELECT * FROM books WHERE id = ?", (book_id,)).fetchone()
 
     if existing is None:
         db.execute(
-            "INSERT OR IGNORE INTO books (id, title) VALUES (?, ?)",
-            (book_id, "Unknown Title")
+            "INSERT OR IGNORE INTO books (id, title, author, cover_id, first_publish_year) VALUES (?, ?, ?, ?, ?)",
+            (book_id, title or "Unknown Title", author, cover_id, year)
+        )
+    else:
+        updated_title = title if title and title != "Unknown Title" else existing["title"]
+        updated_author = author or existing["author"]
+        updated_cover_id = cover_id if cover_id is not None else existing["cover_id"]
+        updated_year = year if year is not None else existing["first_publish_year"]
+        db.execute(
+            "UPDATE books SET title = ?, author = ?, cover_id = ?, first_publish_year = ? WHERE id = ?",
+            (updated_title, updated_author, updated_cover_id, updated_year, book_id)
         )
     db.commit()
-
 
     # Check if user already has the book in their list 
     existing_entry = db.execute(
@@ -325,6 +351,20 @@ def profile():
         return redirect("/login")
 
     return render_template("profile.html", email=user["email"])
+
+@app.route("/track/delete/<book_id>", methods=["POST"])
+def delete_track(book_id):
+    if "user_id" not in session:
+        return redirect("/login")
+
+    db = get_db()
+    db.execute(
+        "DELETE FROM reading_list WHERE user_id = ? AND book_id = ?",
+        (session["user_id"], book_id)
+    )
+    db.commit()
+
+    return redirect("/track")
 
 @app.route("/logout")
 def logout():
