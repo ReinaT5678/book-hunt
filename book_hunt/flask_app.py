@@ -368,17 +368,6 @@ def delete_track(book_id):
 
     return redirect("/track")
 
-@app.route("/update-email", methods=["POST"])
-def update_email():
-    if "user_id" not in session:
-        return {"success": False, "error": "Not logged in"}, 401
-
-    new_email = request.json.get("email")
-    db = get_db()
-    db.execute("UPDATE users SET email = ? WHERE id = ?", (new_email, session["user_id"]))
-    db.commit()
-    return {"success": True}
-
 @app.route("/update-password", methods=["POST"])
 def update_password():
     if "user_id" not in session:
