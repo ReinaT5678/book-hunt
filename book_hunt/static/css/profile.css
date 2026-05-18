@@ -125,13 +125,10 @@
     background: #DDE7DD;
 }
 
-/* HIDE */
 .hidden {
     display: none !important;
 }
 
-
-/* PASSWORD FORM */
 .password-form {
     margin-top: 14px;
     display: flex;
