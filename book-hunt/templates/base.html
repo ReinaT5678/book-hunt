@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta charset="UTF-8">
+        <title>Book Hunt</title>
+        <link rel="stylesheet" href="../static/css/style.css">
+        {% block head %}{% endblock %}
+    </head>
+
+    <body>
+        <nav class="navbar">
+            <div class="nav-left">
+                <a href="/search" class="nav-logo">Book Hunt</a>
+            </div>
+
+            <div class="nav-right">
+                <a href="/search" class="nav-link"> Search </a>
+                <a href="/track" class="nav-link">Track</a>
+                <a href="/profile" class="nav-link">Profile</a>
+                {% if current_user_email %}
+                <span class="nav-user">{{ current_user_email }}</span>
+                <a href="/logout" class="nav-link">Logout</a>
+                {% else %}
+                <a href="/login" class="nav-link">Login</a>
+                {% endif %}
+            </div>
+
+        </nav>
+
+        <button id="chat-toggle" class="chat-toggle" aria-label="Open chat">
+            💬
+        </button>
+
+        <aside id="chat-sidebar" class="chat-sidebar" aria-label="Book Hunt AI chat">
+            <div class="chat-header">
+                <div>
+                    <h2>Book Hunt AI</h2>
+                    <p>Book recommendations</p>
+                </div>
+                <div class="chat-header-actions">
+                    <button id="clear-chat" class="clear-chat" type="button">Clear</button>
+                    <button id="close-sidebar" class="close-sidebar" type="button" aria-label="Close chat">x</button>
+                </div>
+            </div>
+            <div class="chat-messages">
+                <p class="bot-message">Ask me for book recommendations!</p>
+            </div>
+            <form class="chat-form">
+                <input id="chat-input" type="text" placeholder="Ask about books..." />
+                <button type="submit">Send</button>
+            </form>
+        </aside>
+
+        <div class="content">
+            {% block content %}{% endblock %}
+        </div>
+
+        <div id="loading-overlay">
+            <div class="spinner"></div>
+        </div>
+
+
+        <script>
+            document.addEventListener("DOMContentLoaded", () => {
+
+                const overlay = document.getElementById("loading-overlay");
+
+                // Show loader on any form submit
+                document.querySelectorAll("form:not(.chat-form)").forEach(form => {
+                    form.addEventListener("submit", () => {
+                        overlay.style.display = "flex";
+                    });
+                });
+
+                // Show loader when clicking book cards 
+                document.querySelectorAll("a.book-card-link").forEach(link => {
+                    link.addEventListener("click", () => {
+                        overlay.style.display = "flex";
+                    });
+                });
+
+                // Show AI toggle 
+                const chatToggle = document.getElementById("chat-toggle");
+                const chatSidebar = document.getElementById("chat-sidebar");
+                const chatClose = document.getElementById("close-sidebar");
+                
+                chatToggle.addEventListener("click", () => {
+                    chatSidebar.classList.add("open");
+                });
+
+                chatClose.addEventListener("click", () => {
+                    chatSidebar.classList.remove("open");
+                });
+
+                const chatForm = document.querySelector(".chat-form");
+                const chatInput = document.getElementById("chat-input");
+                const chatMessages = document.querySelector(".chat-messages");
+                const clearChat = document.getElementById("clear-chat");
+
+                function resetChatMessages() {
+                    chatMessages.innerHTML = "";
+                    addChatMessage("Ask me for book recommendations!", "bot-message");
+                }
+
+                function addChatMessage(text, className) {
+                    const message = document.createElement("p");
+                    message.className = className;
+                    message.textContent = text;
+                    chatMessages.appendChild(message);
+                    chatMessages.scrollTop = chatMessages.scrollHeight;
+                }
+
+                function addBookResults(books) {
+                    const results = document.createElement("div");
+                    results.className = "chat-results";
+
+                    if (!books.length) {
+                        addChatMessage("I could not find matching books in Open Library. Try a genre, author, or title.", "bot-message");
+                        return;
+                    }
+
+                    books.forEach(book => {
+                        const link = document.createElement("a");
+                        link.className = "chat-book";
+                        link.href = `/book/${book.id}`;
+
+                        const cover = book.cover_url
+                            ? `<img src="${book.cover_url}" alt="${book.title} cover">`
+                            : `<div class="chat-book-cover">No Cover</div>`;
+
+                        link.innerHTML = `
+                            ${cover}
+                            <span>
+                                <strong>${book.title}</strong>
+                                <small>${book.author || "Unknown author"}${book.first_publish_year ? ` · ${book.first_publish_year}` : ""}</small>
+                            </span>
+                        `;
+                        results.appendChild(link);
+                    });
+
+                    chatMessages.appendChild(results);
+                    chatMessages.scrollTop = chatMessages.scrollHeight;
+                }
+
+                function renderChatTurn(turn) {
+                    addChatMessage(turn.user, "user-message");
+                    addChatMessage(turn.reply, "bot-message");
+                    addBookResults(turn.books || []);
+                }
+
+                function loadChatHistory() {
+                    fetch("/chat-history")
+                        .then(response => response.json())
+                        .then(data => {
+                            if (!data.history || !data.history.length) return;
+                            chatMessages.innerHTML = "";
+                            data.history.forEach(renderChatTurn);
+                        });
+                }
+
+                chatForm.addEventListener("submit", event => {
+                    event.preventDefault();
+                    const userMessage = chatInput.value.trim();
+                    if (!userMessage) return;
+
+                    addChatMessage(userMessage, "user-message");
+                    chatInput.value = "";
+                    addChatMessage("Finding book matches...", "bot-message loading-message");
+
+                    fetch("/recommend", {
+                        method: "POST",
+                        headers: {"Content-Type": "application/json"},
+                        body: JSON.stringify({message: userMessage})
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        document.querySelector(".loading-message")?.remove();
+                        if (!data.success) {
+                            addChatMessage(data.error || "Something went wrong.", "bot-message");
+                            return;
+                        }
+                        addChatMessage(data.reply, "bot-message");
+                        addBookResults(data.books || []);
+                    })
+                    .catch(() => {
+                        document.querySelector(".loading-message")?.remove();
+                        addChatMessage("I had trouble reaching the recommendation service.", "bot-message");
+                    });
+                });
+
+                clearChat.addEventListener("click", () => {
+                    fetch("/chat-history/clear", {method: "POST"})
+                        .then(() => resetChatMessages());
+                });
+
+                loadChatHistory();
+
+            });
+            </script>
+
+    </body>
+</html>

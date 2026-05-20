@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <link rel="stylesheet" href="../static/css/style.css">
+        <title>Login to Book Hunt</title>
+    </head>
+
+    <body>
+        <h1>Book Hunt Login</h1>
+        <div class="form-container">
+            
+            <div class="form-header">
+                <p>Please enter your email and password to log in or sign up.</p>
+            </div>
+            <form method="POST" action="/login">
+                {% if error %}
+                <p style="color: red;">{{error}}</p>
+                {% endif %}
+
+                <div class="input-container">
+                    <input type="email" name="email" placeholder="Email Address" required>
+                    <input type="password" name="password" placeholder="Password" required>
+                </div>
+                <div class="login-form">
+                    <button class="submit" type="submit">Submit</button>
+                </div>
+            </form>
+        </div>
+    </body>
+</html>

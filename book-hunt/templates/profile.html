@@ -1,0 +1,89 @@
+{% extends "base.html" %}
+
+{% block head %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/profile.css') }}">
+{% endblock %}
+
+{% block content %}
+
+<div class="profile-wrapper">
+
+    {% if email %}
+    <div class="profile-card">
+        <h1 class="profile-title">Your Profile</h1>
+
+        <div class="profile-section">
+            <label>Email</label>
+            <div class="profile-row">
+                <input id="email-input" type="email" value="{{ email }}" disabled>
+            </div>
+        </div>
+
+        <div class="profile-section">
+            <label>Password</label>
+            <div class="profile-row">
+                <input id="password-display" type="password" value="*********" disabled>
+                <button id="password-change-btn"> Change Password </button>
+            </div>
+
+            <div id="password-form" class="password-form hidden">
+                <input type="password" id="current-password" placeholder="Current Password">
+                <input type="password" id="new-password" placeholder="New Password">
+                <button id="password-save-btn" class="save-btn">Save Password</button>
+                <button id="password-cancel-btn" class="cancel-btn"> Cancel</button>
+            </div>
+        </div>
+
+        <a href="/logout" class="logout-button">Logout</a>
+    </div>
+
+    {% else %}
+    <div class="profile-card">
+        <h1 class="profile-title">Please log in to see your profile.</h1>
+    </div>
+    {% endif %}
+
+</div>
+
+<script>
+    document.addEventListener("DOMContentLoaded", () => {
+
+        /** PASSWORD CHANGE **/
+        const changeBtn = document.getElementById("password-change-btn");
+        const form = document.getElementById("password-form");
+        const savePassBtn = document.getElementById("password-save-btn");
+        const cancelPassBtn = document.getElementById("password-cancel-btn");
+
+        // Show password form
+        changeBtn.addEventListener("click", () => {
+            form.classList.remove("hidden");
+        });
+
+        // Hide password form
+        cancelPassBtn.addEventListener("click", () => {
+            form.classList.add("hidden");
+        });
+
+        // Save password
+        savePassBtn.addEventListener("click", () => {
+            fetch("/update-password", {
+                method: "POST",
+                headers: {"Content-Type": "application/json"},
+                body: JSON.stringify({
+                    current: document.getElementById("current-password").value,
+                    new: document.getElementById("new-password").value,
+                    confirm: document.getElementById("confirm-password")?.value || ""
+                })
+            }).then(res => res.json()).then(data => {
+                if (data.success) {
+                    form.classList.add("hidden");
+                } else {
+                    alert(data.error);
+                }
+            });
+        });
+
+    });
+
+</script>
+{% endblock %}
