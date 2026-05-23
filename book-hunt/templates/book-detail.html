@@ -47,6 +47,31 @@
                 <p>{{ subject }}</p>
                 {% endfor %}
                 {% endif %}
+
+                {% if nlp_recommendations %}
+                <h3>Similar Books</h3>
+
+                <div class="similar-books-grid">
+                    {% for rec in nlp_recommendations %}
+                    <a href="/book/{{ rec.id }}" class="similar-book-card">
+                        <div class="similar-book-cover">
+                            {% if rec.cover_url %}
+                            <img src="{{ rec.cover_url }}" alt="{{ rec.title }} cover">
+                            {% else %}
+                            <div class="similar-cover-placeholder">No cover</div>
+                            {% endif %}
+                        </div>
+
+                        <div class="similar-book-info">
+                            <h4>{{ rec.title }}</h4>
+                            <p>{{ rec.author }}</p>
+                            <p class="match-score">{{ rec.similarity_score }}% NLP match</p>
+                            <p class="match-reason">{{ rec.match_reason }}</p>
+                        </div>
+                    </a>
+                    {% endfor %}
+                </div>
+                {% endif %}
             </div>
         </div>
     </div>

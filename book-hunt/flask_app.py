@@ -6,6 +6,8 @@ import os
 import json
 import re
 from dotenv import load_dotenv 
+from sklearn.feature_extraction.text import TfidfVectorizer
+from sklearn.metrics.pairwise import cosine_similarity
 
 load_dotenv()
 DATABASE = "instance/app.db"
@@ -348,6 +350,161 @@ def clear_chat_history():
     session.pop("chat_history", None)
     return jsonify({"success": True})
 
+# --- NLP recommendation helpers ---
+def normalize_text_parts(parts):
+    # Combine non-empty text fields into one clean string
+    return " ".join(str(part).strip() for part in parts if part).strip()
+
+def extract_description(description):
+    if isinstance(description, dict):
+        return description.get("value")
+    return description
+
+def build_book_nlp_text(book):
+    # Compare books using title, author, description, and subjects
+    subjects = " ".join(book.get("subjects", [])[:12])
+
+    return normalize_text_parts([
+        book.get("title"),
+        book.get("author"),
+        book.get("description"),
+        subjects
+    ])
+
+def fetch_work_details(book_id):
+    response = requests.get(f"https://openlibrary.org/works/{book_id}.json")
+    if response.status_code != 200: return None
+
+    data = response.json()
+
+    cover_id = data.get("covers", [None])[0] if data.get("covers") else None 
+    description = extract_description(data.get("description")) or "No description available"
+
+    author_names = []
+    for auth in data.get("authors", [])[:3]:
+        author_ref = auth.get("author", {})
+        if "key" not in author_ref: continue 
+        author_key = author_ref["key"].split("/")[-1]
+
+        try:
+            auth_resp = requests.get(
+                f"https://openlibrary.org/authors/{author_key}.json",
+                timeout=8
+            )
+            if auth_resp.status_code == 200:
+                author_names.append(auth_resp.json().get("name", "Unknown"))
+        except requests.RequestException:
+            continue
+
+    return {
+        "id": book_id,
+        "title": data.get("title") or "Unknown title",
+        "author": ", ".join(author_names) if author_names else "Unknown",
+        "description": description,
+        "subjects": data.get("subjects", []),
+        "cover_url": f"https://covers.openlibrary.org/b/id/{cover_id}-L.jpg" if cover_id else None,
+        "cover_id": cover_id,
+        "first_publish_year": data.get("first_publish_date")
+    }
+
+
+def search_candidate_books(source_book, limit=24):
+    seen = {source_book["id"]}
+    candidates = []
+    searches = []
+
+    # Search by the source book's top subjects
+    for subject in source_book.get("subjects", [])[:5]:
+        searches.append({"subject": subject})
+
+    # Search by author too
+    if source_book.get("author") and source_book["author"] != "Unknown":
+        searches.append({"author": source_book["author"].split(",")[0]})
+
+    # Use the title as a fallback query to find related Open Library results.
+    if source_book.get("title"):
+        searches.append({"q": source_book["title"]})
+
+    for params in searches:
+        try:
+            for book in search_open_library(params, limit=8):
+                if not book["id"] or book["id"] in seen:
+                    continue
+
+                seen.add(book["id"])
+                candidates.append(book)
+
+                if len(candidates) >= limit:
+                    return candidates
+
+        except requests.RequestException as error:
+            print(f"NLP candidate search failed: {error}")
+
+    return candidates
+
+
+def get_nlp_recommendations(source_book, limit=6):
+    # Main NLP: collect candidates, vectorize text, compare similarity, rank results.
+    candidates = search_candidate_books(source_book)
+    enriched_candidates = []
+
+    # fetch full details before comparing text.
+    for candidate in candidates:
+        try:
+            details = fetch_work_details(candidate["id"])
+        except requests.RequestException:
+            details = None
+
+        if details and build_book_nlp_text(details):
+            enriched_candidates.append(details)
+
+    if not enriched_candidates:
+        return []
+
+    # index 0 is the book we compare everything against (source book)
+    documents = [build_book_nlp_text(source_book)]
+
+    for candidate in enriched_candidates:
+        documents.append(build_book_nlp_text(candidate))
+
+    # TF-IDF converts text into numeric features where important words/phrases get weight.
+    vectorizer = TfidfVectorizer(
+        stop_words="english",
+        max_features=5000,
+        ngram_range=(1, 2)
+    )
+
+    # Cosine similarity scores how close each candidate vector is to the source book vector.
+    tfidf_matrix = vectorizer.fit_transform(documents)
+    scores = cosine_similarity(tfidf_matrix[0:1], tfidf_matrix[1:]).flatten()
+
+    ranked = sorted(
+        zip(enriched_candidates, scores),
+        key=lambda item: item[1],
+        reverse=True
+    )[:limit]
+
+    source_subjects = {subject.lower() for subject in source_book.get("subjects", [])}
+
+    recommendations = []
+
+    for book, score in ranked:
+        shared_subjects = [
+            subject for subject in book.get("subjects", [])
+            if subject.lower() in source_subjects
+        ][:3]
+
+        book["similarity_score"] = round(float(score) * 100, 1)
+        book["match_reason"] = (
+            "Shared subjects: " + ", ".join(shared_subjects)
+            if shared_subjects
+            else "Similar title, description, and subject language"
+        )
+
+        recommendations.append(book)
+
+    return recommendations
+
 @app.route("/book/<book_id>")
 def book_detail(book_id):
     # Fetch work details 
@@ -398,6 +555,9 @@ def book_detail(book_id):
         "first_publish_year": data.get("first_publish_date")
     }
 
+    nlp_recommendations = get_nlp_recommendations(book)
+
+
     # Check current status for logged-in user
     current_status = None
     if "user_id" in session:
@@ -409,7 +569,12 @@ def book_detail(book_id):
         if status_row:
             current_status = status_row["status"]
 
-    return render_template("book-detail.html", book=book, current_status=current_status)
+    return render_template(
+        "book-detail.html",
+        book=book,
+        current_status=current_status,
+        nlp_recommendations=nlp_recommendations
+    )
 
 @app.route("/track")
 def track():
