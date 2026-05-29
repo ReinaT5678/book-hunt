@@ -1,6 +1,6 @@
 # Book Hunt
 
-Book Hunt is a Flask web app for searching books with the Open Library API and saving books to a personal reading tracker. Users can search by keyword, author, or genre, view book details, and organize books into three lists: Want to Read, Currently Reading, and Finished.
+Book Hunt is a Flask web app for searching books with the Open Library API and saving books to a personal reading tracker. Users can search by keyword, author, or genre, view book details, and organize books into three lists: Want to Read, Currently Reading, and Finished. 
 
 ## What You Need
 
@@ -86,6 +86,9 @@ http://127.0.0.1:5000
 - Move books between lists with drag and drop
 - Delete books from your tracker
 - Update your account password from the profile page
+- AI powered book recommendation chat using Azure OpenAI.
+- NLP-based similar-book recommendations using TF-IDF vectoriation and cosine similarity.
+- Cloud deployment on Azure App Service with production startup through Gunicorn.
 
 ## Troubleshooting
 
@@ -102,6 +105,13 @@ If the app cannot find the database, recreate it:
 mkdir -p instance
 sqlite3 instance/app.db < schema.sql
 ```
+
+## AI and NLP Recommendation 
+Book Hunt includes two recommendation workflows. 
+
+The first uses Azure OpenAI to support a natural-language recommendation chat. Users enters a request, then the app sends the prompt to Azure OpenAI to extract structured search terms and genres. Those terms are then used to query the Open Library API and return any book matches. 
+
+The second workflow is a NLP-based similar books recommender built with scikit-learn. For each selected book, the app combines the title, author, description, and subjects into a text document. It then uses the TF-IDF vectorization to convert the text into numerical features and cosine similarity to compare the selected book against candidates. The highest scoring books are displayed.  
 
 ## Notes
 
