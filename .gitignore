@@ -6,3 +6,6 @@ __pycache__/
 book-hunt/.env
 .venv/
 .instance/
+.git
+*.pyc 
+.pytest_cache/
