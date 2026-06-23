@@ -1,0 +1,5 @@
+This section explains how Azure was integrated into this app using Azure OpenAI and on the hosted Azure App Service configuration.
+
+The app uses OpenAI for the chat recommendation feature. A user input goes through the Flask app inot the deployed Azure OpenAI model (version 5). Azure returns a list of useful search terms and genres, which is used to search through the Open Library API that returns real book results. 
+
+The app is prepared for the Azure App Service deployment. The Flask app can run online as a cloud-hosted web app instead of only running locally on the user's laptop. 

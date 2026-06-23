@@ -5,3 +5,5 @@ Werkzeug
 gunicorn
 openai
 scikit-learn
+SQLAlchemy
+psycopg[binary]

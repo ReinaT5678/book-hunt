@@ -1,6 +1,5 @@
 from flask import Flask, render_template, request, redirect, session, g, jsonify
 import requests
-import sqlite3
 from werkzeug.security import generate_password_hash, check_password_hash
 import os
 import json
@@ -8,9 +7,15 @@ import re
 from dotenv import load_dotenv 
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
+from sqlalchemy import create_engine, text 
 
 load_dotenv()
-DATABASE = "instance/app.db"
+DATABASE_URL = os.environ.get("DATABASE_URL")
+
+if not DATABASE_URL:
+    raise RuntimeError("DATABASE_URL must be set to use PostgreSQL.")
+
+engine = create_engine(DATABASE_URL, pool_pre_ping=True)
 
 app = Flask(__name__)
 app.secret_key = os.environ.get("FLASK_SECRET_KEY")
@@ -18,21 +23,14 @@ app.secret_key = os.environ.get("FLASK_SECRET_KEY")
 def get_db():
     db = g.get("db")
     if db is None:
-        db = g.db = sqlite3.connect(DATABASE)
-        db.row_factory = sqlite3.Row
+        db = g.db = engine.connect()
     return db
 
-def init_db():
-    db = sqlite3.connect(DATABASE)
-    with open(os.path.join(os.path.dirname(__file__), 'schema.sql')) as f:
-        db.executescript(f.read())
-    db.commit()
-    db.close()
-
-def ensure_database():
-    if not os.path.exists(DATABASE):
-        os.makedirs(os.path.dirname(DATABASE), exist_ok=True)
-        init_db()
+@app.teardown_appcontext
+def close_db(error):
+    db = g.pop("db", None)
+    if db is not None:
+        db.close()
 
 DEFAULT_GENRES = [
     "Fiction", "Non-fiction", "Mystery", "Romance",
@@ -196,18 +194,12 @@ def inject_logged_in_user():
     if "user_id" in session:
         db = get_db()
         user_row = db.execute(
-            "SELECT email FROM users WHERE id = ?",
-            (session["user_id"],)
-        ).fetchone()
+            text("SELECT email FROM users WHERE id = :user_id"),
+            {"user_id": session["user_id"]}
+        ).mappings().fetchone()
         if user_row:
             current_user_email = user_row["email"]
     return {"current_user_email": current_user_email}
-
-@app.teardown_appcontext
-def close_db(error):
-    db = g.pop("db", None)
-    if db is not None:
-        db.close()
 
 @app.route("/")
 def home():
@@ -215,7 +207,6 @@ def home():
 
 @app.route("/login", methods=["GET", "POST"])
 def login():
-    ensure_database()
     db = get_db()
 
     if request.method == "POST":
@@ -224,24 +215,24 @@ def login():
 
         # Look up user
         user = db.execute(
-            "SELECT * FROM users WHERE email = ?",
-            (email,)
-        ).fetchone()
+            text("SELECT * FROM users WHERE email = :email"),
+            {"email": email}
+        ).mappings().fetchone()
 
         # Create new user if not found
         if user is None:
             password_hash = generate_password_hash(password)
 
             db.execute(
-                "INSERT INTO users (email, password_hash) VALUES (?, ?)",
-                (email, password_hash)
+                text("INSERT INTO users (email, password_hash) VALUES (:email, :password_hash)"),
+                {"email": email, "password_hash": password_hash}
             )
             db.commit()
 
             user = db.execute(
-                "SELECT * FROM users WHERE email = ?",
-                (email,)
-            ).fetchone()
+                text("SELECT * FROM users WHERE email = :email"),
+                {"email": email}
+            ).mappings().fetchone()
 
             session["user_id"] = user["id"]
             return redirect("/search")
@@ -563,9 +554,9 @@ def book_detail(book_id):
     if "user_id" in session:
         db = get_db()
         status_row = db.execute(
-            "SELECT status FROM reading_list WHERE user_id = ? AND book_id = ?",
-            (session["user_id"], book_id)
-        ).fetchone()
+            text("SELECT status FROM reading_list WHERE user_id = :user_id AND book_id = :book_id"),
+            {"user_id": session["user_id"], "book_id": book_id}
+        ).mappings().fetchone()
         if status_row:
             current_status = status_row["status"]
 
@@ -584,22 +575,28 @@ def track():
     db = get_db()
 
     want_to_read = db.execute(
-        "SELECT * FROM reading_list JOIN books ON reading_list.book_id = books.id "
-        "WHERE user_id = ? AND status = 'want_to_read'",
-        (session["user_id"],)
-    ).fetchall() 
+        text(
+            "SELECT * FROM reading_list JOIN books ON reading_list.book_id = books.id "
+            "WHERE user_id = :user_id AND status = 'want_to_read'"
+        ),
+        {"user_id": session["user_id"]}
+    ).mappings().fetchall() 
 
     reading = db.execute(
-        "SELECT * FROM reading_list JOIN books ON reading_list.book_id = books.id "
-        "WHERE user_id = ? AND status = 'reading'",
-        (session["user_id"],)
-    ).fetchall()
+        text(
+            "SELECT * FROM reading_list JOIN books ON reading_list.book_id = books.id "
+            "WHERE user_id = :user_id AND status = 'reading'"
+        ),
+        {"user_id": session["user_id"]}
+    ).mappings().fetchall()
 
     finished = db.execute(
-        "SELECT * FROM reading_list JOIN books ON reading_list.book_id = books.id "
-        "WHERE user_id = ? AND status = 'finished'",
-        (session["user_id"],)
-    ).fetchall()
+        text(
+            "SELECT * FROM reading_list JOIN books ON reading_list.book_id = books.id "
+            "WHERE user_id = :user_id AND status = 'finished'"
+        ),
+        {"user_id": session["user_id"]}
+    ).mappings().fetchall()
 
     return render_template("book-track.html", want_to_read=want_to_read, reading=reading, finished=finished)
 
@@ -633,12 +630,25 @@ def update_track(book_id):
     except (TypeError, ValueError):
         year = None
 
-    existing = db.execute("SELECT * FROM books WHERE id = ?", (book_id,)).fetchone()
+    existing = db.execute(
+        text("SELECT * FROM books WHERE id = :book_id"),
+        {"book_id": book_id}
+    ).mappings().fetchone()
 
     if existing is None:
         db.execute(
-            "INSERT OR IGNORE INTO books (id, title, author, cover_id, first_publish_year) VALUES (?, ?, ?, ?, ?)",
-            (book_id, title or "Unknown Title", author, cover_id, year)
+            text(
+                "INSERT INTO books (id, title, author, cover_id, first_publish_year) "
+                "VALUES (:book_id, :title, :author, :cover_id, :year) "
+                "ON CONFLICT (id) DO NOTHING"
+            ),
+            {
+                "book_id": book_id,
+                "title": title or "Unknown Title",
+                "author": author,
+                "cover_id": cover_id,
+                "year": year
+            }
         )
     else:
         updated_title = title if title and title != "Unknown Title" else existing["title"]
@@ -646,28 +656,41 @@ def update_track(book_id):
         updated_cover_id = cover_id if cover_id is not None else existing["cover_id"]
         updated_year = year if year is not None else existing["first_publish_year"]
         db.execute(
-            "UPDATE books SET title = ?, author = ?, cover_id = ?, first_publish_year = ? WHERE id = ?",
-            (updated_title, updated_author, updated_cover_id, updated_year, book_id)
+            text(
+                "UPDATE books "
+                "SET title = :title, author = :author, cover_id = :cover_id, first_publish_year = :year "
+                "WHERE id = :book_id"
+            ),
+            {
+                "title": updated_title,
+                "author": updated_author,
+                "cover_id": updated_cover_id,
+                "year": updated_year,
+                "book_id": book_id
+            }
         )
     db.commit()
 
     # Check if user already has the book in their list 
     existing_entry = db.execute(
-        "SELECT * FROM reading_list WHERE user_id = ? AND book_id = ?",
-        (session["user_id"], book_id)
-    ).fetchone()
+        text("SELECT * FROM reading_list WHERE user_id = :user_id AND book_id = :book_id"),
+        {"user_id": session["user_id"], "book_id": book_id}
+    ).mappings().fetchone()
 
     if existing_entry:
         # Update status
         db.execute(
-            "UPDATE reading_list SET status = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?",
-            (status, existing_entry["id"])
+            text("UPDATE reading_list SET status = :status, updated_at = CURRENT_TIMESTAMP WHERE id = :id"),
+            {"status": status, "id": existing_entry["id"]}
         )
     else:
         # Insert new entry
         db.execute(
-            "INSERT INTO reading_list (user_id, book_id, status) VALUES (?, ?, ?)",
-            (session["user_id"], book_id, status)
+            text(
+                "INSERT INTO reading_list (user_id, book_id, status) "
+                "VALUES (:user_id, :book_id, :status)"
+            ),
+            {"user_id": session["user_id"], "book_id": book_id, "status": status}
         )
 
     db.commit()
@@ -685,9 +708,9 @@ def profile():
 
     db = get_db()
     user = db.execute(
-        "SELECT * FROM users WHERE id = ?",
-        (session["user_id"],)
-    ).fetchone()
+        text("SELECT * FROM users WHERE id = :user_id"),
+        {"user_id": session["user_id"]}
+    ).mappings().fetchone()
 
     if user is None:
         return redirect("/login")
@@ -701,8 +724,8 @@ def delete_track(book_id):
 
     db = get_db()
     db.execute(
-        "DELETE FROM reading_list WHERE user_id = ? AND book_id = ?",
-        (session["user_id"], book_id)
+        text("DELETE FROM reading_list WHERE user_id = :user_id AND book_id = :book_id"),
+        {"user_id": session["user_id"], "book_id": book_id}
     )
     db.commit()
 
@@ -723,9 +746,9 @@ def update_password():
     
     db = get_db()
     user = db.execute( 
-        "SELECT * FROM users WHERE id = ?",
-        (session["user_id"],)
-    ).fetchone()
+        text("SELECT * FROM users WHERE id = :user_id"),
+        {"user_id": session["user_id"]}
+    ).mappings().fetchone()
 
     # Verify the current password 
     if not check_password_hash(user["password_hash"], current_password):
@@ -734,8 +757,8 @@ def update_password():
     #Save hte new password 
     new_hash = generate_password_hash(new_password)
     db.execute(
-        "UPDATE users SET password_hash = ? WHERE id = ?",
-        (new_hash, session["user_id"])
+        text("UPDATE users SET password_hash = :password_hash WHERE id = :user_id"),
+        {"password_hash": new_hash, "user_id": session["user_id"]}
     )
     db.commit()
     return {"success": True}
@@ -746,8 +769,4 @@ def logout():
     return redirect("/login")
 
 if __name__ == "__main__":
-    # Initialize database if it doesn't exist
-    if not os.path.exists(DATABASE):
-        os.makedirs(os.path.dirname(DATABASE), exist_ok=True)
-        init_db()
     app.run(debug=True)
